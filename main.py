@@ -128,6 +128,21 @@ async def about(ctx):
 async def help(ctx):
     await ctx.send(embed = help_embed)
 
+# Moderation Commands
+@bot.command(aliases=['b'])
+@commands.cooldown(1,10,commands.BucketType.user)
+@commands.has_permissions(ban_members = True)
+async def ban(ctx,member : discord.Member,*,reason= "No reason provided!"):
+    await member.send("You have been banned from a server, because: "+reason)
+    await member.ban(reason=reason)
+
+@bot.command(aliases=['k'])
+@commands.has_permissions(kick_members = True)
+@commands.cooldown(1,10,commands.BucketType.user)
+async def kick(ctx,member : discord.Member,*,reason= "No reason provided!"):
+    await member.kick(reason = reason)
+    await member.send("You have been kicked from a server, because: "+reason)
+
 # Events
 @bot.event
 async def on_command_error(ctx, error):
