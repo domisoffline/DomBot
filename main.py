@@ -5,10 +5,13 @@ import googletrans
 import praw
 import random
 from discord.utils import get
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 bot = commands.Bot(command_prefix="$", case_insensitive=True)
 bot.remove_command('help')
-DISCORD_TOKEN = "ODYyMzYzMjI5OTA4MTA3Mjc0.YOXQVw.dQ8V9iguw3fe05VrDCkn3PZc9ek"
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 reddit = praw.Reddit(client_id = "BtRbN9gb3F2Zqg",
                     client_secret = "PsT8pY7vv9oonu2dgJuBVpizaC7LmQ",
                     username = "ahoyden",
