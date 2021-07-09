@@ -7,6 +7,7 @@ import random
 from discord.utils import get
 import os
 from dotenv import load_dotenv
+import whois
 
 load_dotenv()
 bot = commands.Bot(command_prefix="$", case_insensitive=True)
@@ -19,13 +20,18 @@ reddit = praw.Reddit(client_id = "BtRbN9gb3F2Zqg",
                     user_agent = "pythonpraw",
                     check_for_async=False)
 
-help_embed = discord.Embed(title = "List Of Commands")
+help_embed = discord.Embed(title = "List Of Commands", inline = True)
 help_embed.add_field(name = "Rules", value = "Sends server rules.")
 help_embed.add_field(name = "Translate", value = "Usage: $Translate (LANGUAGE) (What you want to translate)")
 help_embed.add_field(name = "Dog", value = "Sends random picture of dog.")
 help_embed.add_field(name = "Cat", value = "Sends random picture of cat.")
+help_embed.add_field(name = "Meme", value = "Sends random meme.")
 help_embed.add_field(name = "Kangaroo", value = "Sends random reddit post involving a kangaroo in some way.")
 help_embed.add_field(name = "Hello", value = "Says Hello!")
+help_embed.add_field(name = "Impersonate", value = "Makes the bot impersonate a user of your choice. \n Usage: $impersonate <@user> <messsage>")
+help_embed.add_field(name = "Summon", value = "Summons the man himself...")
+help_embed.add_field(name = "Eval", value = "A calculator. \n Usage: <operation> <number 1> <number 2>")
+help_embed.add_field(name = "WhoisLookup", value = "Performs a whois lookup of a specified URL.")
 
 
 
@@ -118,6 +124,31 @@ async def kangaroo(ctx):
     kangaroo_embed.add_field(name = url, value = "‎")
     kangaroo_embed.set_footer(text = f'r/{subreddit} 👍{upvotes}')
     await ctx.send(embed = kangaroo_embed)
+
+@bot.command(pass_context=True, aliases=['memes'])
+@commands.cooldown(1,10,commands.BucketType.user)
+async def meme(ctx):
+    subreddit = reddit.subreddit("memes")
+    all_subs = []
+    top = subreddit.top(limit = 50)
+
+    for submission in top:
+        all_subs.append(submission)
+
+    random_post = random.choice(all_subs)
+
+    name = random_post.title
+    url = random_post.url
+    text = random_post.selftext
+    upvotes = random_post.score
+    subreddit = random_post.subreddit
+
+    meme_embed = discord.Embed(title = name)
+    meme_embed.set_image(url = url)
+    meme_embed.set_footer(text = f'r/{subreddit} 👍{upvotes}')
+
+    await ctx.send(embed = meme_embed)
+
 @bot.command()
 async def about(ctx):
     embed = discord.Embed(title = "About The Bot!", description = "Custom coded bot for the Squad Brocolli Server.")
@@ -128,7 +159,62 @@ async def about(ctx):
 async def help(ctx):
     await ctx.send(embed = help_embed)
 
+@bot.command(name='avatar')
+async def dp(ctx, *, member: discord.Member = None):
+    if not member:
+        member = ctx.message.author
+    userAvatar = member.avatar_url
+    await ctx.send(userAvatar)
+
+@bot.command()
+async def impersonate(ctx, member: discord.Member, *, message=None):
+
+        webhook = await ctx.channel.create_webhook(name=member.name)
+        await webhook.send(
+            str(message), username=member.name, avatar_url=member.avatar_url)
+
+        webhooks = await ctx.channel.webhooks()
+        for webhook in webhooks:
+                await webhook.delete()
+
+@bot.command()
+async def summon(ctx):
+    webhook = await ctx.channel.create_webhook(name="God")
+    await webhook.send("Hello mighty human!", avatar_url='https://i.swncdn.com/media/800w/cms/CCOM/61039-jesus-resurrection-light.1200w.tn.jpg')
+
+@bot.command()
+async def eval(ctx, operation, firstnumber, secondnumber):
+    if operation == '+':
+        answer = int(firstnumber) + int(secondnumber)
+        await ctx.send(answer)
+    if operation == '-':
+        answer = int(firstnumber) - int(secondnumber)
+        await ctx.send(answer)
+    if operation == 'x':
+        answer = int(firstnumber) * int(secondnumber)
+        await ctx.send(answer)
+    if operation == '/':
+        answer = int(firstnumber) / int(secondnumber)
+        await ctx.send(answer)
+    else:
+        await ctx.send("Correct operations are: '+', '-', 'x' and '/'!")
+
+@bot.command()
+async def whoislookup(ctx, domainname):
+    domain = whois.whois(str(domainname))
+    await ctx.send(domain['org'])
+    await ctx.send("registrar: " + domain['registrar'])
+    await ctx.send("creation date: " + str(domain.creation_date[0]))
+    await ctx.send("name server: ")
+    for i in domain.name_servers:
+        await ctx.send(str(i))
+    await ctx.send("emails: ")
+    for i in domain.emails:
+        await ctx.send(str(i))
+    
+
 # Moderation Commands
+
 @bot.command(aliases=['b'])
 @commands.cooldown(1,10,commands.BucketType.user)
 @commands.has_permissions(ban_members = True)
@@ -143,6 +229,13 @@ async def kick(ctx,member : discord.Member,*,reason= "No reason provided!"):
     await member.kick(reason = reason)
     await member.send("You have been kicked from a server, because: "+reason)
 
+@bot.command()
+async def shutdown(ctx):
+    if ctx.author.id == 696119919116288100:
+        await ctx.send("Bot is successfully shutting down...")
+        await bot.close()
+    else:
+        await ctx.send("You do not have the correct permissions!")
 # Events
 @bot.event
 async def on_command_error(ctx, error):
